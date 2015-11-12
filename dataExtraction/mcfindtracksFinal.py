@@ -277,32 +277,36 @@ class TrackFilter(AlgoMC):
                         if  self.getRelatedPV(p) == d0pv \
                         and (p.proto() != None and p.proto().track() not in daughterTracks) ]
 
-        partsFromPVSameDecay = []
-        partsFromPVOtherDecay = []
+        partsFromPVSameDecay = set()
+        partsFromPVOtherDecay = set()
         for p in partsFromPV:
             mcp = self._getRelatedMCParticle(p)
             mcptop = self._findMCTop(mcp)
             if mcp == None or mcptop == None:
                 continue
             if mcptop == mcd0top:
-                partsFromPVSameDecay.append(p)
+                partsFromPVSameDecay.add(p)
             else:
-                partsFromPVOtherDecay.append(p)
+                partsFromPVOtherDecay.add(p)
                 
         # Sort the particles py pt
         # Take the top PT particles and keep them
         NBTRACKS = 10
-        ptsorts = sorted(partsFromPVSameDecay, key=lambda p: p.pt(), reverse=True)
-        self.processPartList(ptsorts[:NBTRACKS], tuple, "hpt_same_", NBTRACKS, mcd0top)
+        ptsorts = sorted(partsFromPVSameDecay, key=lambda p: p.pt(), reverse=True)[:NBTRACKS]
+        self.processPartList(ptsorts, tuple, "hpt_same_", NBTRACKS, mcd0top)
 
-        ptsorto = sorted(partsFromPVOtherDecay, key=lambda p: p.pt(), reverse=True)
-        self.processPartList(ptsorto[:NBTRACKS], tuple, "hpt_other_", NBTRACKS, mcd0top)
+        ptsorto = sorted(partsFromPVOtherDecay, key=lambda p: p.pt(), reverse=True)[:NBTRACKS]
+        self.processPartList(ptsorto, tuple, "hpt_other_", NBTRACKS, mcd0top)
 
         # Now finding the most displaced vertices
-        distsorts = sorted(partsFromPVSameDecay, key=lambda p: BPVVDCHI2(p), reverse=True)
+        # Use set difference to remove tracks that are also in the NBTRACKS tracks with
+        # highest pt. 
+        distsorts = sorted(partsFromPVSameDecay.difference(set(ptsorts)),
+                           key=lambda p: BPVVDCHI2(p), reverse=True)
         self.processPartList(distsorts[:NBTRACKS], tuple, "vdchi2_same_", NBTRACKS, mcd0top)
 
-        distsorto = sorted(partsFromPVOtherDecay, key=lambda p: BPVVDCHI2(p), reverse=True)
+        distsorto = sorted(partsFromPVOtherDecay.difference(set(ptsorto)),
+                           key=lambda p: BPVVDCHI2(p), reverse=True)
         self.processPartList(distsorto[:NBTRACKS], tuple, "vdchi2_other_", NBTRACKS, mcd0top)
 
 
