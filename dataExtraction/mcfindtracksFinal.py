@@ -137,6 +137,7 @@ class TrackFilter(AlgoMC):
             tuple.column(prefix + "PVX",  VX(bpv))
             tuple.column(prefix + "PVY",  VY(bpv))
             tuple.column(prefix + "PVZ",  VZ(bpv))
+            tuple.column(prefix + 'PVNTracks', bpv.tracks().size()) 
 
     def processParticlePID(self, p, tuple, prefix):
          """
@@ -288,7 +289,9 @@ class TrackFilter(AlgoMC):
                 partsFromPVSameDecay.add(p)
             else:
                 partsFromPVOtherDecay.add(p)
-                
+        tuple.column('n_same_tracks', len(partsFromPVSameDecay))
+        tuple.column('n_other_tracks', len(partsFromPVOtherDecay))
+        
         # Sort the particles py pt
         # Take the top PT particles and keep them
         NBTRACKS = 10
@@ -378,7 +381,9 @@ def configure ( inputdata        ,    ## the list of input files
                    CondDBtag="sim-20111111-vc-md100",
                    HistogramFile = "mcd02kpi_tracks7_histo.root",
                    TupleFile = "mcd02kpi_tracks7_ntuple.root",
-                   PrintFreq = 1000)
+                   PrintFreq = 1000,
+                   EvtMax = 1000,
+                   )
     
 
     from Configurables import DecayTreeTuple, FilterDesktop, TupleToolGeometry, CombineParticles
@@ -503,7 +508,7 @@ if __name__ == '__main__' :
     configure( inputdata , castor = True )
     
     ## event loop
-    run(5000)
+    run(1000)
     #run(5000)
         
 # =============================================================================
