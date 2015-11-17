@@ -104,7 +104,8 @@ naming convention eventually.
 '''
 
 outfile = TFile(outfilename,"recreate")
-outtree = TTree(options.intreename,options.intreename)
+outtree = TTree(options.intreename.split('/')[-1],
+                options.intreename.split('/')[-1])
 
 
 # Preparing branches for the D and its children
