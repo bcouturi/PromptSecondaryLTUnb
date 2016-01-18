@@ -1,7 +1,7 @@
 D0 -> Kpi data, MC matched, unbiased, mixture of prompt & secondary (7.5 %) :
   Updated:
+    CERN: root://eoslhcb.cern.ch//eos/lhcb/user/m/malexand/d2hh/secondariesTagging/mcd02kpi_tracks9_merged.root
+    Glasgow PPE network: /nfs/lhcb/malexander01/charm/secondariesTagging/data/mcd02kpi_tracks9_merged.root
+  Prev:
     CERN: root://eoslhcb.cern.ch//eos/lhcb/user/m/malexand/d2hh/secondariesTagging/mcd02kpi_tracks8_merged.root
     Glasgow PPE network: /nfs/lhcb/malexander01/charm/secondariesTagging/data/mcd02kpi_tracks8_merged.root
-  Prev:
-    CERN : root://eoslhcb.cern.ch//eos/lhcb/user/l/lben/27163003tag/mcd02kpi_tracks7_merged.root
-    Glasgow PPE network: /nfs/lhcb/malexander01/charm/secondariesTagging/data/mcd02kpi_tracks7_merged.root
