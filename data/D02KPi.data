@@ -5,3 +5,292 @@ D0 -> Kpi data, MC matched, unbiased, mixture of prompt & secondary (7.5 %) :
   Prev:
     CERN: root://eoslhcb.cern.ch//eos/lhcb/user/m/malexand/d2hh/secondariesTagging/mcd02kpi_tracks8_merged.root
     Glasgow PPE network: /nfs/lhcb/malexander01/charm/secondariesTagging/data/mcd02kpi_tracks8_merged.root
+
+Description of branches:
+
+                            D_* branches all refer to the signal D0->Kpi candidate.
+D_ID                        PDG ID of the signal D, should be either 421 (D0) or -421 (D0bar)
+D_PX			    x-component of momentum.
+D_PY			    y-component
+D_PZ			    z-component
+D_PT			    Transverse momentum, (px^2 + py^2)^0.5.
+D_E			    Energy, (m^2 + p^2)^0.5.
+D_ETA			    Pseudo-rapidity, -ln(pt/2p).
+D_PHI			    Azimuthal angle, tan(px/py).
+D_MM			    Measured mass, (E^2 - p^2)^0.5
+D_VX			    x-coordinate of decay vertex (found from the point of closest approach of the K and pi tracks)
+D_VY			    y-coordinate
+D_VZ			    z-coordinate
+D_BPVVD			    Flight distance (also known as 'vertex distance'): distance between the best primary vertex (BPV) and the decay vertex. The BPV is the PV that the D candidate passes closest to. 
+D_BPVVDCHI2		    Flight distance chi2 (chi2 of the hypothesis that the D0 decayed instantly - should generally be large for signal D0s).
+D_BPVIPCHI2		    Impact parameter chi2 (chi2 of the hypothesis that the D0 passed exactly through the BPV).
+D_FSX			    x-coordinate of the "first state" of the trajectory - only applies to tracks, not the D0.
+D_FSY			    y-coordinate
+D_FSZ			    z-coordinate
+D_BPVDIRA		    "Pointing angle" - cosine of angle between the D0 trajectory and the line between the BPV and the D0 decay vertex.
+D_BPVLTIME		    Decay time w.r.t. BPV, t = (flight distance) * (mass) / (momentum).
+D_BPVLTCHI2		    Decay time chi2 (chi2 of the hypothesis that the D0 decayed instantly, essentially the same as VDCHI2).
+D_PVX			    x-coordinate of BPV.
+D_PVY			    y-coordinate
+D_PVZ			    z-coordinate
+D_PVNTracks		    N. tracks used to make the BPV.
+D_FROMB			    Whether the candidate is from a B decay (1) or not (0).
+D_TRUE_E		    True energy of the simulated D.
+D_TRUE_TAU		    True decay time.
+D_TRUE_M		    True mass.
+D_TRUE_ID		    True PDG ID (should be -421 or 421).
+D_TRUE_MOTHER_ID	    True PDG ID of mother particle.
+D_TRUE_GD_MOTHER_ID	    True PDG ID of grandmother particle.
+D_CTAU			    (Speed of light) * (decay time).
+
+			    DChild1_* branches refer to the Kaon daughter of the D0. The majority of the branches have the same meaning as for the D0 case.
+DChild1_ID		    PDG ID - should always be 321 (K+) or -321 (K-).
+DChild1_PX
+DChild1_PY
+DChild1_PZ
+DChild1_PT
+DChild1_E
+DChild1_ETA
+DChild1_PHI
+DChild1_MM
+DChild1_VX                  These aren't set since a single track doesn't have a decay vertex. 
+DChild1_VY
+DChild1_VZ
+DChild1_BPVVD               Similarly, the flight distance doesn't make sense for a single track so isn't filled.
+DChild1_BPVVDCHI2
+DChild1_BPVIPCHI2           This is set, and is one of the best discriminating variables for a track that's the product of a D or B. 
+DChild1_FSX		    These "first state" branches are filled for tracks, though I don't think they're actually much use.
+DChild1_FSY
+DChild1_FSZ
+DChild1_PIDK                Additionally, for tracks, the PID info is filled. PIDK is how much more likely the track is from a K than a pion.
+DChild1_PIDp		    Similarly, how much more likely the track is to be from a proton than a pion.
+DChild1_PIDpi		    This one's actually just always filled with zeros ...
+DChild1_PIDmu		    How much more likely the track is to be from a muon than a pion.
+DChild1_TRUE_E
+DChild1_TRUE_TAU
+DChild1_TRUE_M
+DChild1_TRUE_ID
+DChild1_TRUE_MOTHER_ID
+DChild1_TRUE_GD_MOTHER_ID
+
+                            The DChild2_* branches are the same but for the pion daughter of the D0.
+DChild2_ID		    Should be -211 (pi-) or 211 (pi+).
+DChild2_PX
+DChild2_PY
+DChild2_PZ
+DChild2_PT
+DChild2_E
+DChild2_ETA
+DChild2_PHI
+DChild2_MM
+DChild2_VX
+DChild2_VY
+DChild2_VZ
+DChild2_BPVVD
+DChild2_BPVVDCHI2
+DChild2_BPVIPCHI2
+DChild2_FSX
+DChild2_FSY
+DChild2_FSZ
+DChild2_PIDK
+DChild2_PIDp
+DChild2_PIDpi
+DChild2_PIDmu
+DChild2_TRUE_E
+DChild2_TRUE_TAU
+DChild2_TRUE_M
+DChild2_TRUE_ID
+DChild2_TRUE_MOTHER_ID
+DChild2_TRUE_GD_MOTHER_ID
+
+
+n_other_decays                 This is the number of OS decays that we find that have the same but opposite flavour to the head of the decay chain of our signal D0. About half the time this is zero (no decay products from the opposite side decay are reconstructed). Most of the rest of the time this is 1, but very rarely there're 2 found (I've not worked out if there's a way to tell which one is the correct one in this case, but it's pretty rare anyway). 
+other_top_ids		       This is an array of the MC IDs of the heads of the OS decays. Its length is given by n_other_decays.
+
+D_TOP_MCID                     The MC ID of the head of the signal D decay chain. 
+n_same_tracks		       The total number of SS tracks associated (from MC truth) to the signal D (they have the same head of their decay chains), excluding the D daughters. This isn't necessarily the same as hpt_same_nParts + vdchi2_same_nParts, since only a maximum of 10 tracks are stored in each of those, but I don't think we ever have more than 20 SS tracks.
+n_other_tracks		       The total number of OS tracks that aren't associated to (any of) the OS decay(s) of interest. Again, this isn't necessarily hpt_other_nParts + vdchi2_other_nParts, since the maximum that can be is 20. 
+
+			       The other_daughters_* branches contain info on the tracks associated to the OS decay of interest. Generally they're arrays that contain one entry for each track, and their meaning is the same as for the DChild* branches. 
+other_daughters_nParts	       The number of tracks reconstructed from any of the OS decays of interest. Obviously, if n_other_decays == 0, this == 0 too. 
+other_daughters_pid	       
+other_daughters_pt
+other_daughters_px
+other_daughters_py
+other_daughters_pz
+other_daughters_e
+other_daughters_eta
+other_daughters_phi
+other_daughters_M
+other_daughters_R
+other_daughters_vx
+other_daughters_vy
+other_daughters_vz
+other_daughters_bpvVD
+other_daughters_bpvVDChi2
+other_daughters_bpvIPChi2
+other_daughters_PIDK
+other_daughters_PIDp
+other_daughters_PIDpi
+other_daughters_PIDmu
+other_daughters_MCID
+other_daughters_MCMOTHERID
+other_daughters_MCGMOTHERID
+other_daughters_MCGGMOTHERID
+other_daughters_D0SAMETREE     Whether the track is from the same decay chain as the signal D - for other_daughters this shoud always be zero.
+other_daughters_FSX
+other_daughters_FSY
+other_daughters_FSZ
+
+                               The hpt_same_* branches are the same as the other_daughters_* branches, but contain info on the highest pt tracks that're from the same decay chain as the signal D0, up to a maximum of 10 tracks. 
+hpt_same_nParts		       The number of tracks in the arrays (up to a maximum of 10). 
+hpt_same_pid
+hpt_same_pt
+hpt_same_px
+hpt_same_py
+hpt_same_pz
+hpt_same_e
+hpt_same_eta
+hpt_same_phi
+hpt_same_M
+hpt_same_R
+hpt_same_vx
+hpt_same_vy
+hpt_same_vz
+hpt_same_bpvVD
+hpt_same_bpvVDChi2
+hpt_same_bpvIPChi2
+hpt_same_PIDK
+hpt_same_PIDp
+hpt_same_PIDpi
+hpt_same_PIDmu
+hpt_same_MCID
+hpt_same_MCMOTHERID
+hpt_same_MCGMOTHERID
+hpt_same_MCGGMOTHERID
+hpt_same_D0SAMETREE
+hpt_same_FSX
+hpt_same_FSY
+hpt_same_FSZ
+
+                        The hpt_other_* branches are the same as the hpt_same_* branches, but for the 10 highest pt tracks not associated to the signal D or the OS decay of interest.
+hpt_other_nParts
+hpt_other_pid
+hpt_other_pt
+hpt_other_px
+hpt_other_py
+hpt_other_pz
+hpt_other_e
+hpt_other_eta
+hpt_other_phi
+hpt_other_M
+hpt_other_R
+hpt_other_vx
+hpt_other_vy
+hpt_other_vz
+hpt_other_bpvVD
+hpt_other_bpvVDChi2
+hpt_other_bpvIPChi2
+hpt_other_PIDK
+hpt_other_PIDp
+hpt_other_PIDpi
+hpt_other_PIDmu
+hpt_other_MCID
+hpt_other_MCMOTHERID
+hpt_other_MCGMOTHERID
+hpt_other_MCGGMOTHERID
+hpt_other_D0SAMETREE
+hpt_other_FSX
+hpt_other_FSY
+hpt_other_FSZ
+
+                                 The vdchi2_same_* branches are the same as the hpt_same_* branches but for the highest IP chi2 tracks associated to the signal D, that haven't already been included in the hpt_same_* branches. 
+vdchi2_same_nParts
+vdchi2_same_pid
+vdchi2_same_pt
+vdchi2_same_px
+vdchi2_same_py
+vdchi2_same_pz
+vdchi2_same_e
+vdchi2_same_eta
+vdchi2_same_phi
+vdchi2_same_M
+vdchi2_same_R
+vdchi2_same_vx
+vdchi2_same_vy
+vdchi2_same_vz
+vdchi2_same_bpvVD
+vdchi2_same_bpvVDChi2
+vdchi2_same_bpvIPChi2
+vdchi2_same_PIDK
+vdchi2_same_PIDp
+vdchi2_same_PIDpi
+vdchi2_same_PIDmu
+vdchi2_same_MCID
+vdchi2_same_MCMOTHERID
+vdchi2_same_MCGMOTHERID
+vdchi2_same_MCGGMOTHERID
+vdchi2_same_D0SAMETREE
+vdchi2_same_FSX
+vdchi2_same_FSY
+vdchi2_same_FSZ
+
+                          The vdchi2_other_* branches are the same as the vdchi2_same_* branches, but for tracks not associated to the signal D or the OS decay. 
+vdchi2_other_nParts
+vdchi2_other_pid
+vdchi2_other_pt
+vdchi2_other_px
+vdchi2_other_py
+vdchi2_other_pz
+vdchi2_other_e
+vdchi2_other_eta
+vdchi2_other_phi
+vdchi2_other_M
+vdchi2_other_R
+vdchi2_other_vx
+vdchi2_other_vy
+vdchi2_other_vz
+vdchi2_other_bpvVD
+vdchi2_other_bpvVDChi2
+vdchi2_other_bpvIPChi2
+vdchi2_other_PIDK
+vdchi2_other_PIDp
+vdchi2_other_PIDpi
+vdchi2_other_PIDmu
+vdchi2_other_MCID
+vdchi2_other_MCMOTHERID
+vdchi2_other_MCGMOTHERID
+vdchi2_other_MCGGMOTHERID
+vdchi2_other_D0SAMETREE
+vdchi2_other_FSX
+vdchi2_other_FSY
+vdchi2_other_FSZ
+
+                            More general info about the event that you don't generally need.
+nPV
+nLong
+nDown
+nUp
+nVelo
+nTT
+nBack
+nTracks
+hSPD
+hRich1
+hRich2
+hVelo
+hIT
+hTT
+hOT
+run
+evt
+tck
+bxtype
+trgtype
+year
+month
+day
+hour
+minute
+second
+nsecond
