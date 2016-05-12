@@ -121,6 +121,7 @@ void RadialSelector::SlaveBegin(TTree * /*tree*/)
   
   // Counters
   histCount = new TH1D("histCount", "Counters", 1, 0, 1);
+  histCount->SetCanExtend(TH1::kAllAxes); 
   GetOutputList()->Add(histCount);
 }
 
@@ -179,7 +180,9 @@ Bool_t RadialSelector::Process(Long64_t entry)
   
   // General stuff
   fReader.SetEntry(entry);
-  
+  histCount->Fill("TREE_TOTAL", 1);  
+
+
   // Constructing the vectors
   TVector3 p(*D_PX, *D_PY, *D_PZ);
   TVector3 primaryVertex(*D_PVX, *D_PVY, *D_PVZ);
@@ -191,21 +194,44 @@ Bool_t RadialSelector::Process(Long64_t entry)
   auto  zAtCutFollowingP = GetZforRadius(radiusCut, primaryVertex, p);
   Double_t acceptanceRatio = (zAtCutFollowingP - primaryVertex.Z()) / (endVertex.Z() - primaryVertex.Z());
   Double_t acceptance = *D_BPVLTIME * acceptanceRatio;
+
+  if (*D_BPVLTIME < 0) {
+      histCount->Fill("NEG_TIME", 1);  
+  }
   
-  // Ignore events with negative lifetime...
-  if ( *D_BPVLTIME < 0) {
-    return kTRUE;
+  if (acceptanceRatio < 0) {
+      histCount->Fill("NEG_ACCRATIO", 1);  
   }
 
-  // Ignore events with end vertex before PV...
-  if ((endVertex.Z() - primaryVertex.Z()) < 0) {
-    return kTRUE;
+  if (acceptanceRatio < 0 && *D_BPVLTIME <0) {
+      histCount->Fill("NEG_BOTH", 1);  
   }
+
+
+  //bool keepEvent = ((*D_BPVLTIME < 0) && (acceptanceRatio > 0)) || ((*D_BPVLTIME > 0) && (acceptanceRatio < 0));
+  //bool keepEvent1 = ((acceptance > 0) && (acceptanceRatio < 0));
+  
+  //bool keepEvent= (*D_BPVLTIME > 0) && ((endVertex.Z() - primaryVertex.Z()) < 0);
+  /*  if (!keepEvent) {
+    return kTRUE;
+    }*/
+  
+
+  // Ignore events with negative lifetime...
+  /*if ( *D_BPVLTIME < 0) {
+    return kTRUE;
+    }*/
+  
+
+  // Ignore events with end vertex before PV...
+    /*  if ((endVertex.Z() - primaryVertex.Z()) < 0) {
+    return kTRUE;
+    }*/
   
   // Using the bin at value 0 tocount the number of events
   // Ugly to use histograms for that but this is merged automatically
   // by Proof
-  histCount->Fill(0);
+  histCount->Fill("TOTAL", 1);
   
   // Mass stuff
   histMM->Fill(*D_MM);
@@ -282,8 +308,23 @@ void RadialSelector::Terminate()
   // the results graphically or save the results to file.
 
   // Printing the total number of events (bin 1).
-  std::cout << "Hist event count: " << histCount->GetBinContent(1) << std::endl;
-  Int_t nbevents = histCount->GetBinContent(1);
+  std::cout << "Hist event count  : " 
+            << histCount->GetBinContent(histCount->GetXaxis()->FindBin("TOTAL")) 
+            << std::endl;
+  std::cout << "Tree total        : " 
+            << histCount->GetBinContent(histCount->GetXaxis()->FindBin("TREE_TOTAL")) 
+            << std::endl;
+  std::cout << "Negative lifetime : " 
+            << histCount->GetBinContent(histCount->GetXaxis()->FindBin("NEG_TIME")) 
+            << std::endl;
+  std::cout << "Negative ratio     : " 
+            << histCount->GetBinContent(histCount->GetXaxis()->FindBin("NEG_ACCRATIO")) 
+            << std::endl;
+  std::cout << "Both negative      : " 
+            << histCount->GetBinContent(histCount->GetXaxis()->FindBin("NEG_BOTH")) 
+            << std::endl;
+
+  Int_t nbevents = histCount->GetBinContent(histCount->GetXaxis()->FindBin("TOTAL"));
   
   TCanvas *c1 = new TCanvas("c1","Histogram checks",200,10,700,900);
   c1->Divide(2,3);
