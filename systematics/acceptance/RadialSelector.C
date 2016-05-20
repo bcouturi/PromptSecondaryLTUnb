@@ -98,6 +98,10 @@ void RadialSelector::SlaveBegin(TTree * /*tree*/)
   NewHist("Acceptance", "Lifetime acceptance (extended following momentum direction)",
 	  500, 0, HIST_ACCEPTANCE_MAX);
 
+  // histogram for the acceptance
+  NewHist("DLifetime", "Lifetime (ns)",
+	  500, 0, HIST_ACCEPTANCE_MAX);
+  
   // histogram for the acceptance lower lifetime
   NewHist("AcceptanceZ", "Lifetime acceptance (extended following momentum direction)",
 	  500, 0, HIST_ACCEPTANCE_MAXZOOM);
@@ -215,7 +219,13 @@ Bool_t RadialSelector::Process(Long64_t entry)
     H("Count")->Fill("NEG_TIME_EV_BEF_PV", 1);  
   }
 
-  bool keepEvent= (*D_BPVLTIME > 0) && ((endVertex.Z() - primaryVertex.Z()) > 0);
+  if ((endVertex.Z() - primaryVertex.Z()) < 0 && *D_BPVLTIME > 0) {
+    H("Count")->Fill("POS_TIME_EV_BEF_PV", 1);  
+  }
+  
+  //bool keepEvent= (*D_BPVLTIME > 0) && ((endVertex.Z() - primaryVertex.Z()) > 0);
+  //  bool keepEvent= (*D_BPVLTIME > 0) && ((endVertex.Z() - primaryVertex.Z()) < 0);
+  bool keepEvent = *D_BPVDIRA > 0;
   if (!keepEvent) {
     return kTRUE;
   }
@@ -257,6 +267,8 @@ Bool_t RadialSelector::Process(Long64_t entry)
   FillAcceptance(H("Acceptance"), acceptance);
   FillAcceptance(H("AcceptanceZ"), acceptance);
 
+  FillAcceptance(H("DLifetime"), *D_BPVLTIME);
+  
   // Checking the difference if we use the vertices direction instead
   auto  zAtCutFollowingVertices = GetZforRadius(radiusCut, primaryVertex, diffVertex);
   Double_t acceptanceV = *D_BPVLTIME * (zAtCutFollowingVertices - primaryVertex.Z()) / (endVertex.Z() - primaryVertex.Z());
@@ -320,6 +332,9 @@ void RadialSelector::Terminate()
             << std::endl;
   std::cout << "EVz < PVz neg lifetime: " 
             << H("Count")->GetBinContent(H("Count")->GetXaxis()->FindBin("NEG_TIME_EV_BEF_PV")) 
+            << std::endl;
+  std::cout << "EVz < PVz pos lifetime: " 
+            << H("Count")->GetBinContent(H("Count")->GetXaxis()->FindBin("POS_TIME_EV_BEF_PV")) 
             << std::endl;
 
   
@@ -408,9 +423,12 @@ void RadialSelector::Terminate()
   legendLf->AddEntry(histAcceptance);
   legendLf->AddEntry(histAcceptanceV);
   legendLf->Draw("SAME");
+  // Now plot the lifetime
   c3->Update();
 
   TCanvas *c5 = new TCanvas("c5","Acceptance",200,10,700,900);
+  c5->Divide(1,2);
+  c5->cd(1);
   c5->SetTitle("Lifetime acceptance (ns)");
   auto histAcceptanceZ = H("AcceptanceZ");
   histAcceptanceZ->Scale(1.0/nbevents);
@@ -428,5 +446,8 @@ void RadialSelector::Terminate()
   legendLfZ->AddEntry(histAcceptanceZ);
   legendLfZ->AddEntry(histAcceptanceVZ);
   legendLfZ->Draw("SAME");
+  c5->cd(2);
+  auto hl = H("DLifetime");
+  hl->DrawNormalized();
   c5->Update();
 }
