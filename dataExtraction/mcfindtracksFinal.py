@@ -154,9 +154,9 @@ class TrackFilter(AlgoMC):
         """
 
         def saveVertex(prefix, name, vertex):
-            tuple.column(prefix + name + "_X", vertex.x())
-            tuple.column(prefix + name + "_Y", vertex.y())
-            tuple.column(prefix + name + "_Z", vertex.z())
+            tuple.column(prefix + name + "X", vertex.x())
+            tuple.column(prefix + name + "Y", vertex.y())
+            tuple.column(prefix + name + "Z", vertex.z())
             
         # Saving the origin of the MC particle
         originVertex = p.originVertex().position()
