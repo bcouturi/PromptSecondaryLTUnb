@@ -5,7 +5,7 @@
 script   = 'mcfindtracksFinal.py'
 
 t = JobTemplate( application = Bender( version = "v25r3", module = script ))
-t.name = "MCFT07"
+t.name = "MCFT10"
 
 j = Job( t, backend = Dirac() )
 #j = Job( t, backend = Local() )
@@ -15,9 +15,9 @@ datafiles = bkquery.getDataset()
 j.inputdata = datafiles
 
 j.splitter=SplitByFiles(filesPerJob=10, ignoremissing=False, maxFiles=None)
-NTUPLE_NAME = "mcd02kpi_tracks7_ntuple.root"
+NTUPLE_NAME = "mcd02kpi_tracks10_ntuple.root"
 ntuple = DiracFile(NTUPLE_NAME)
-histo = DiracFile("mcd02kpi_tracks7_histo.root")
+histo = DiracFile("mcd02kpi_tracks10_histo.root")
 j.outputfiles = [ntuple, histo] 
 
 j.submit()

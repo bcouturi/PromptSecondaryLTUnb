@@ -147,11 +147,40 @@ class TrackFilter(AlgoMC):
          tuple.column(prefix + "PIDpi", PIDpi(p))
          tuple.column(prefix + "PIDmu", PIDmu(p))
          tuple.column(prefix + "ID", int(ID(p)))
-
+         
     def processMCParticle(self, p, tuple, prefix, full=False):
         """
         Dump MC Particle to a tuple
         """
+
+        def saveVertex(prefix, name, vertex):
+            tuple.column(prefix + name + "_X", vertex.x())
+            tuple.column(prefix + name + "_Y", vertex.y())
+            tuple.column(prefix + name + "_Z", vertex.z())
+            
+        # Saving the origin of the MC particle
+        originVertex = p.originVertex().position()
+        saveVertex(prefix, "TRUE_ORIGV", originVertex)
+        
+        # Saving the PV of the MC particle
+        primaryVertex = p.primaryVertex().position()
+        saveVertex(prefix, "TRUE_PV", primaryVertex)
+
+        # Saving the end vertex of the MC particle
+        nbendv = p.endVertices().size()
+        if p.endVertices().size() > 1:
+            # Why would there be more than one ?
+            print "=================> MC with %d endVertices" % nbendv
+        if p.endVertices().size() >= 1:
+            endVertex = p.endVertices()[0].position()
+            saveVertex(prefix, "TRUE_EV", endVertex)
+            
+        if p.endVertices().size() == 0:
+            name = "TRUE_EV"
+            tuple.column(prefix + name + "_X", -1e6)
+            tuple.column(prefix + name + "_Y", -1e6)
+            tuple.column(prefix + name + "_Z", -1e6)
+            
         tuple.column(prefix + "TRUE_E", MCE(p))
         tuple.column(prefix + "TRUE_TAU", MCCTAU(p))
         tuple.column(prefix + "TRUE_M", MCM(p) )
@@ -242,7 +271,7 @@ class TrackFilter(AlgoMC):
         ## Looking for MC particle
         mcd0 = self._getRelatedMCParticle(d0)
         mcd0top = self._findMCTop(mcd0)
-
+        
         # Just a check
         if mcd0top == None and mcd0 != None:
             print "ERROR ERROR ERROR: This shouldn't happen !"
@@ -372,8 +401,8 @@ def configure ( inputdata        ,    ## the list of input files
                    Simulation = True,
                    DDDBtag="MC11-20111102",
                    CondDBtag="sim-20111111-vc-md100",
-                   HistogramFile = "mcd02kpi_tracks7_histo.root",
-                   TupleFile = "mcd02kpi_tracks7_ntuple.root",
+                   HistogramFile = "mcd02kpi_tracks10_histo.root",
+                   TupleFile = "mcd02kpi_tracks10_ntuple.root",
                    PrintFreq = 1000)
     
 
@@ -499,8 +528,8 @@ if __name__ == '__main__' :
     configure( inputdata , castor = True )
     
     ## event loop
+    #run(10)
     run(5000)
-    #run(5000)
         
 # =============================================================================
 # The END
