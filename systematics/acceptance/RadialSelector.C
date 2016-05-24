@@ -26,8 +26,9 @@
 //
 
 #include "RadialSelector.h"
-#include <TH2.h>
 #include <TStyle.h>
+#include <TGraph.h>
+#include <TGraphErrors.h>
 #include <cmath>
 
 TH1D* RadialSelector::NewHist(const char *key,
@@ -92,7 +93,9 @@ void RadialSelector::SlaveBegin(TTree * /*tree*/)
   NewHist("PEta_FromB", "Momentum Eta distribution from B", 400, -0.1, 30);
 
   // histogram for the lifetime
-  NewHist("Lifetime", "Calculated lifetime / D_BPVLTIME", 500, 0, 2);
+  NewHist("Lifetime", "(recalc lifetime - D_BPVLTIME) / D_BPVLTIME", 500, -2, 2);
+  NewHist("LifetimeCTAU", "(recalc lifetime * c - D_CTAU) / D_CTAU", 500, -2, 2);
+  NewHist("LifetimeCTAUvsMC", "(D_TRUE_TAU - D_CTAU) / D_TRUE_TAU", 500, -2, 2);
 
   // histogram for the acceptance
   NewHist("Acceptance", "Lifetime acceptance (extended following momentum direction)",
@@ -119,6 +122,16 @@ void RadialSelector::SlaveBegin(TTree * /*tree*/)
   // Counters
   auto histCount = NewHist("Count", "Counters", 1, 0, 1);
   histCount->SetCanExtend(TH1::kAllAxes); 
+
+  // Histogram of EV end vertez
+  evdvstau = new TH2D("evdvstau", "End vertex diff. with MC vs tau",
+		      20, 0, 0.1,
+		      50, -0.1, 0.1);
+  GetOutputList()->Add(evdvstau);
+
+  profevz = new TProfile("profevz", "End vertex diff. with MC vs tau",
+			 50, 0, 0.003);
+  GetOutputList()->Add(profevz);
 }
 
 
@@ -258,8 +271,17 @@ Bool_t RadialSelector::Process(Long64_t entry)
   Double_t fd = diffVertex.Mag();
   const Double_t c = TMath::C() * 1e-6;// * 1e3 / 1e9;//We need mm/ns in LHCb Units
   Double_t ltime = fd * (*D_MM) / (p.Mag() * c);
-  H("Lifetime")->Fill(ltime / *D_BPVLTIME);
-  
+  H("Lifetime")->Fill((ltime - *D_BPVLTIME) / *D_BPVLTIME);
+  H("LifetimeCTAU")->Fill((ltime * c - *D_CTAU) / *D_CTAU);
+  H("LifetimeCTAUvsMC")->Fill((*D_CTAU - *D_TRUE_TAU) / *D_TRUE_TAU);
+  //std::cout << "LTIME CHeck: " << ltime / (*D_CTAU/c) << std::endl;
+  /*
+  std::cout << "====> "
+	    << (*D_BPVLTIME - *D_CTAU)
+	    << " - "
+	    << (*D_CTAU / *D_BPVLTIME )
+	    << std::endl;
+  */
   // Keeping a histogram of acceptance ratio
   H("AcceptanceRatio")->Fill(acceptanceRatio);
 
@@ -275,6 +297,14 @@ Bool_t RadialSelector::Process(Long64_t entry)
   FillAcceptance(H("AcceptanceV"), acceptanceV);
   FillAcceptance(H("AcceptanceVZ"), acceptanceV);
 
+
+  // 2D hist of diff between true End Vertex Z and recalculated
+  if (*D_FROMB == 0) {
+    Double_t truelt = *D_TRUE_TAU / c;
+    evdvstau->Fill(truelt, (*D_TRUE_EV_Z - *D_VZ));
+    profevz->Fill(truelt, (*D_VZ - *D_TRUE_EV_Z));
+  }
+  
   // And we're done...
   return kTRUE;
 }
@@ -397,8 +427,27 @@ void RadialSelector::Terminate()
   
   TCanvas *c2 = new TCanvas("c2","Lifetime check",200,10,700,900);
   c2->SetLogy();
+  gStyle->SetOptTitle(0);
+  H("Lifetime")->SetStats(0);
   H("Lifetime")->DrawNormalized();
+  H("LifetimeCTAU")->SetLineColor(kRed);
+  H("LifetimeCTAU")->SetStats(0);
+  H("LifetimeCTAU")->DrawNormalized("SAME");
+  H("LifetimeCTAUvsMC")->SetLineColor(kGreen);
+  H("LifetimeCTAUvsMC")->SetStats(0);
+  H("LifetimeCTAUvsMC")->DrawNormalized("SAME");
+  auto legendLfcmp = new TLegend(0.55,0.85,0.89,0.89);
+  legendLfcmp->SetFillColor(0);
+  legendLfcmp->AddEntry(H("Lifetime"));
+  legendLfcmp->AddEntry(H("LifetimeCTAU"));
+  legendLfcmp->AddEntry(H("LifetimeCTAUvsMC"));
+  legendLfcmp->Draw("SAME");
   c2->Update();
+  TPaveText *t = new TPaveText(0.2, 0.9, 0.8, 1.0, "nbNDC");
+  t->AddText("Recalculated lifetime (#frac{flight dist * m}{p * c})  vs functor");
+  t->SetFillColor(kWhite);
+  t->Draw();
+  c2->Update(); 
   
   TCanvas *c4 = new TCanvas("c4","Ratio between lifetime and max lifetime",200,10,700,900);
   H("AcceptanceRatio")->DrawNormalized();
@@ -450,4 +499,34 @@ void RadialSelector::Terminate()
   auto hl = H("DLifetime");
   hl->DrawNormalized();
   c5->Update();
+
+  TCanvas *c6 = new TCanvas("c6","Diff. between true and calculated endvertex");
+  evdvstau->Draw("contour");
+  c6->Update();
+
+  double x[30];
+  double y[30];
+  double ex[30];
+  double ey[30];
+  for(int i=0; i< 30; i++) {
+    x[i] = evdvstau->GetXaxis()->GetBinCenter(i);
+    TH1D *p = evdvstau->ProjectionY("proj", i, i);
+    std::cout << "Mean: " << p->GetMean() << std::endl;
+    y[i] = p->GetMean();
+    ex[i] = 0;
+    ey[i] = p->GetMeanError();
+  }
+
+  TGraphErrors *g = new TGraphErrors(30, x, y, ex, ey);
+  g->Draw();
+  c6->Update();
+
+  TCanvas *c7 = new TCanvas("c6","Diff. between true and calculated endvertex");
+  profevz->GetXaxis()->SetTitle("D^{0} true t [ns]");
+  profevz->GetYaxis()->SetTitle("D^{0} End vertex z: rec - true [mm]");
+  profevz->Draw();
+  c7->Update();
+
+
+  
 }

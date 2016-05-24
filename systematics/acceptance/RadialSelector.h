@@ -24,10 +24,12 @@
 #include <TTreeReaderValue.h>
 #include <TTreeReaderArray.h>
 #include <TH1D.h>
+#include <TH2D.h>
 #include <TCanvas.h>
 #include <TVector3.h>
 #include <TLegend.h>
 #include <TMath.h>
+#include <TProfile.h>
 #include <map>
 
 /**
@@ -56,16 +58,25 @@ public :
    TTreeReaderValue<Double_t> D_PVZ = {fReader, "D_PVZ"};
    TTreeReaderValue<Int_t> D_FROMB = {fReader, "D_FROMB"};
    TTreeReaderValue<Double_t> D_BPVDIRA = {fReader, "D_BPVDIRA"};
-   TTreeReaderValue<Double_t> D_BPVLTIME = {fReader, "D_BPVLTIME"};
    // Decay time w.r.t. BPV, t = (flight distance) * (mass) / (momentum).
+   TTreeReaderValue<Double_t> D_BPVLTIME = {fReader, "D_BPVLTIME"};
+   TTreeReaderValue<Double_t> D_TRUE_TAU = {fReader, "D_TRUE_TAU"};
+   TTreeReaderValue<Double_t> D_TRUE_EV_X = {fReader, "D_TRUE_EV_X"};
+   TTreeReaderValue<Double_t> D_TRUE_EV_Y = {fReader, "D_TRUE_EV_Y"};
+   TTreeReaderValue<Double_t> D_TRUE_EV_Z = {fReader, "D_TRUE_EV_Z"};
+   TTreeReaderValue<Double_t> D_CTAU = {fReader, "D_CTAU"};
 
-   std::map<std::string, TH1D *> hists;
+
+   TH2D *evdvstau;
+   TProfile *profevz;
    
    // Some constants
    const Double_t HIST_ACCEPTANCE_MAX = 0.5;
    const Double_t HIST_ACCEPTANCE_MAXZOOM = 0.01;
    
- RadialSelector(TTree * /*tree*/ =0) : hists() { }
+ RadialSelector(TTree * /*tree*/ =0) :
+     evdvstau(nullptr),
+     profevz(nullptr) { }
    virtual ~RadialSelector() {}
    virtual Int_t   Version() const { return 2; }
    virtual void    Begin(TTree *tree);
@@ -73,7 +84,8 @@ public :
    virtual void    Init(TTree *tree);
    virtual Bool_t  Notify();
    virtual Bool_t  Process(Long64_t entry);
-   virtual Int_t   GetEntry(Long64_t entry, Int_t getall = 0) { return fChain ? fChain->GetTree()->GetEntry(entry, getall) : 0; }
+   virtual Int_t   GetEntry(Long64_t entry, Int_t getall = 0) {
+     return fChain ? fChain->GetTree()->GetEntry(entry, getall) : 0; }
    virtual void    SetOption(const char *option) { fOption = option; }
    virtual void    SetObject(TObject *obj) { fObject = obj; }
    virtual void    SetInputList(TList *input) { fInput = input; }
