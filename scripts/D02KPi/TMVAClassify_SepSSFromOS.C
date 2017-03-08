@@ -178,7 +178,7 @@ void TMVAClassify_SepSSFromOS( TString myMethodList = "" )
    // All TMVA output can be suppressed by removing the "!" (not) in
    // front of the "Silent" argument in the option string
    TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile,
-                                               "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification" );
+                                               "!V:!Silent:Color:!DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification" );
 
    // If you wish to modify default settings
    // (please check "src/Config.h" to see all available global options)
@@ -192,9 +192,9 @@ void TMVAClassify_SepSSFromOS( TString myMethodList = "" )
    factory->AddVariable( "track_angletochild1",  "Angle to kaon from D0",    "",  'F' );   
    factory->AddVariable( "track_angletochild2",  "Angle to pion from D0",    "",  'F' );
    factory->AddVariable( "log(track_devdist)",   "log(DOCA to D0 vertex)",    "",  'F' );
-   //factory->AddVariable( "log(track_docatochild1)",   "log(DOCA to kaon from D0)",    "",  'F' );
-   //factory->AddVariable( "log(track_docatochild2)",   "log(DOCA to pion from D0)",    "",  'F' );
-   //factory->AddVariable( "log(track_docatod)",       "Distance to D0 trajectory",   "",  'F' );      
+   factory->AddVariable( "log(track_docatochild1)",   "log(DOCA to kaon from D0)",    "",  'F' );
+   factory->AddVariable( "log(track_docatochild2)",   "log(DOCA to pion from D0)",    "",  'F' );
+   factory->AddVariable( "log(track_docatod)",       "Distance to D0 trajectory",   "",  'F' );      
    factory->AddVariable( "track_ptratiod",       "Ratio track PT to D0 PT  ",   "",  'F' );      
    factory->AddVariable( "track_ptratiochild1",       "Ratio track PT to kaon PT",   "",  'F' );      
    factory->AddVariable( "track_ptratiochild2",       "Distance track PT to pion PT",   "",  'F' );      

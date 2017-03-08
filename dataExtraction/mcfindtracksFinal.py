@@ -4,6 +4,7 @@ import ROOT
 from Bender.MainMC import * 
 from GaudiKernel.SystemOfUnits import GeV, MeV, mm
 import BenderTools.Fill
+vctdouble     = cpp.vector('double')
 
 # =============================================================================
 ## (optional) logging
@@ -43,6 +44,8 @@ class TrackFilter(AlgoMC):
         self._associators = [ self.tool(cpp.IParticle2MCAssociator, tool)
                               for tool in ["DaVinciSmartAssociator",
                                            "MCMatchObjP2MCRelator"]]
+        self.debug = False
+
         return SUCCESS
 
     ## Make sure we cleanup in finalize
@@ -137,6 +140,7 @@ class TrackFilter(AlgoMC):
             tuple.column(prefix + "PVX",  VX(bpv))
             tuple.column(prefix + "PVY",  VY(bpv))
             tuple.column(prefix + "PVZ",  VZ(bpv))
+            tuple.column(prefix + 'PVNTracks', bpv.tracks().size()) 
 
     def processParticlePID(self, p, tuple, prefix):
          """
@@ -283,7 +287,8 @@ class TrackFilter(AlgoMC):
         self.processParticle(d0, tuple, "D_", True, firstState=True)
 
         # Processing the MC
-        tuple.column("D_FROMB",  self._isFromB(mcd0))
+        fromB = self._isFromB(mcd0)
+        tuple.column("D_FROMB", fromB)
         self.processMCParticle(mcd0, tuple, 'D_')
 
         # Checking D0 lifetime        
@@ -306,32 +311,116 @@ class TrackFilter(AlgoMC):
                         if  self.getRelatedPV(p) == d0pv \
                         and (p.proto() != None and p.proto().track() not in daughterTracks) ]
 
-        partsFromPVSameDecay = []
-        partsFromPVOtherDecay = []
+        partsFromPVSameDecay = set()
+        partsFromPVOtherDecay = set()
+        mctops = {}
         for p in partsFromPV:
             mcp = self._getRelatedMCParticle(p)
             mcptop = self._findMCTop(mcp)
             if mcp == None or mcptop == None:
                 continue
             if mcptop == mcd0top:
-                partsFromPVSameDecay.append(p)
+                partsFromPVSameDecay.add(p)
             else:
-                partsFromPVOtherDecay.append(p)
-                
+                # Have to do a string comparison since somehow even if the MCParticle
+                # is the same the python references can be different objects (but
+                # comparison with == works).
+                strmctop = str(mcptop)
+                if mctops.has_key(strmctop) :
+                    mctops[strmctop].append((p, mcp))
+                else :
+                    mctops[strmctop] = [mcptop, (p, mcp)]
+                partsFromPVOtherDecay.add(p)
+
+        if self.debug :
+            print '*' * 80
+            print 'D0 MC top, fromB:', fromB
+            print mcd0top
+            print
+            print 'Other decays:'
+        osdecays = []
+        for mctop, ps in mctops.iteritems() :
+            # Still not sure how to handle the case in which the D0 originates from
+            # a psi(3770) or an upsilon, in which case the OS decay will have the
+            # same top particle.
+            mctop = ps[0]
+            ps = ps[1:]
+            oppositeFlavour = (mctop.particleID().pid()/mcd0top.particleID().pid() < 0)
+            if not oppositeFlavour :
+                continue
+            hasCharm = mctop.particleID().hasCharm()
+            hasBottom = mctop.particleID().hasBottom()
+            if fromB :
+                if not hasBottom :
+                    mctop = None
+                    continue
+            else :
+                if not hasCharm :
+                    mctop = None
+                    continue
+            osdecays.append((mctop, ps))
+            if self.debug :
+                print 'Has charm?', hasCharm, \
+                    '   has bottom?', hasBottom, \
+                    '   opposite flavour to D0 top?', \
+                    oppositeFlavour,\
+                    '   is di-quark?', mctop.particleID().isDiQuark()
+                print mctop
+                print 'N reco\'d daughters:', len(ps)
+                for p, mcp in ps :
+                    print p
+                    print mcp
+                    print 
+                print '-' * 12
+
+        if len(osdecays) > 1 :
+            print 'ERROR: Found more than one OS decay candidate:'
+            print 'Signal:'
+            print mcd0top
+            print 'OS decays:'
+            for osdecay in osdecays :
+                print osdecay[0]
+
+        ostopids = vctdouble()
+        if len(osdecays) > 0 :
+            osdaughterparts = set(p for osdecay in osdecays\
+                                      for p, mcp in osdecay[1])
+            for ostop, parts in osdecays :
+                ostopids.push_back(ostop.particleID().pid())
+        else :
+            osdaughterparts = set()
+        #tuple.column('n_other_decays', len(osdecays))
+        tuple.farray('other_top_ids', ostopids, 'n_other_decays', 10)
+
+        tuple.column('D_TOP_MCID', mcd0top.particleID().pid())
+
+        partsFromPVOtherDecay = partsFromPVOtherDecay.difference(osdaughterparts)
+
+        tuple.column('n_same_tracks', len(partsFromPVSameDecay))
+        tuple.column('n_other_tracks', len(partsFromPVOtherDecay))
+
+        # Store the tracks from the daughters of the OS decay.
+        self.processPartList(osdaughterparts, tuple, "other_daughters_", 
+                             100, mcd0top)
+
         # Sort the particles py pt
         # Take the top PT particles and keep them
         NBTRACKS = 10
-        ptsorts = sorted(partsFromPVSameDecay, key=lambda p: p.pt(), reverse=True)
-        self.processPartList(ptsorts[:NBTRACKS], tuple, "hpt_same_", NBTRACKS, mcd0top)
+        ptsorts = sorted(partsFromPVSameDecay, key=lambda p: p.pt(), reverse=True)[:NBTRACKS]
+        self.processPartList(ptsorts, tuple, "hpt_same_", NBTRACKS, mcd0top)
 
-        ptsorto = sorted(partsFromPVOtherDecay, key=lambda p: p.pt(), reverse=True)
-        self.processPartList(ptsorto[:NBTRACKS], tuple, "hpt_other_", NBTRACKS, mcd0top)
+        ptsorto = sorted(partsFromPVOtherDecay, key=lambda p: p.pt(), reverse=True)[:NBTRACKS]
+        self.processPartList(ptsorto, tuple, "hpt_other_", NBTRACKS, mcd0top)
 
         # Now finding the most displaced vertices
-        distsorts = sorted(partsFromPVSameDecay, key=lambda p: BPVVDCHI2(p), reverse=True)
+        # Use set difference to remove tracks that are also in the NBTRACKS tracks with
+        # highest pt. 
+        distsorts = sorted(partsFromPVSameDecay.difference(set(ptsorts)),
+                           key=lambda p: BPVVDCHI2(p), reverse=True)
         self.processPartList(distsorts[:NBTRACKS], tuple, "vdchi2_same_", NBTRACKS, mcd0top)
 
-        distsorto = sorted(partsFromPVOtherDecay, key=lambda p: BPVVDCHI2(p), reverse=True)
+        distsorto = sorted(partsFromPVOtherDecay.difference(set(ptsorto)),
+                           key=lambda p: BPVVDCHI2(p), reverse=True)
         self.processPartList(distsorto[:NBTRACKS], tuple, "vdchi2_other_", NBTRACKS, mcd0top)
 
 
@@ -383,6 +472,7 @@ class TrackFilter(AlgoMC):
 
 # =============================================================================
 ## The configuration of the job
+alg = None
 def configure ( inputdata        ,    ## the list of input files  
                 catalogs = []    ,    ## xml-catalogs (filled by GRID)
                 castor   = False ,    ## use the direct access to castor/EOS ? 
@@ -401,9 +491,11 @@ def configure ( inputdata        ,    ## the list of input files
                    Simulation = True,
                    DDDBtag="MC11-20111102",
                    CondDBtag="sim-20111111-vc-md100",
-                   HistogramFile = "mcd02kpi_tracks10_histo.root",
-                   TupleFile = "mcd02kpi_tracks10_ntuple.root",
-                   PrintFreq = 1000)
+                   HistogramFile = "mcd02kpi_tracks_histo.root",
+                   TupleFile = "mcd02kpi_tracks_ntuple.root",
+                   PrintFreq = 1000,
+                   EvtMax = 1000,
+                   )
     
 
     from Configurables import DecayTreeTuple, FilterDesktop, TupleToolGeometry, CombineParticles
@@ -457,8 +549,8 @@ def configure ( inputdata        ,    ## the list of input files
     #
     
     ## (1) create the algorithm
+    global alg
     alg = TrackFilter( 'TrackFilter' )
-    
     #seq = createSequencer()
     ## (2) replace the list of top level algorithm by
     #     new list, which contains only *THIS* algorithm
@@ -528,8 +620,8 @@ if __name__ == '__main__' :
     configure( inputdata , castor = True )
     
     ## event loop
-    #run(10)
-    run(5000)
+    #run(1000)
+    #run(5000)
         
 # =============================================================================
 # The END

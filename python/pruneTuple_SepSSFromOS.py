@@ -104,7 +104,8 @@ naming convention eventually.
 '''
 
 outfile = TFile(outfilename,"recreate")
-outtree = TTree(options.intreename,options.intreename)
+outtree = TTree(options.intreename.split('/')[-1],
+                options.intreename.split('/')[-1])
 
 
 # Preparing branches for the D and its children
@@ -129,11 +130,11 @@ outtree.Branch('nTrack',arraysforouttree[0],'nTrack/I')
 outtree.Branch('track_angletod',arraysforouttree[1],'track_angletod[nTrack]/F')
 outtree.Branch('track_docatod',arraysforouttree_doca[1],'track_docatod[nTrack]/F')
 outtree.Branch('track_devdist',arraysforouttree_ddist[0],'track_devdist[nTrack]/F')
-outtree.Branch('track_ptratiod',arraysforouttree_ddist[0],'track_ptratiod[nTrack]/F')
+outtree.Branch('track_ptratiod',arraysforouttree_ptratio[1],'track_ptratiod[nTrack]/F')
 for i in range(1,ndchildren+1) :
   outtree.Branch('track_angletochild'+str(i),arraysforouttree[i+1],'track_angletochild'+str(i)+'[nTrack]/F')
   outtree.Branch('track_docatochild'+str(i),arraysforouttree_doca[i+1],'track_docatochild'+str(i)+'[nTrack]/F')
-  outtree.Branch('track_ptratiochild'+str(i),arraysforouttree_doca[i+1],'track_ptratiochild'+str(i)+'[nTrack]/F')
+  outtree.Branch('track_ptratiochild'+str(i),arraysforouttree_ptratio[i+1],'track_ptratiochild'+str(i)+'[nTrack]/F')
 
 # Iterating on tuple entries
 #########################################################################
@@ -149,24 +150,8 @@ for entry in range(0,numentries_intree) :
                         intree.__getattr__('DChild'+str(i)+'_PY'),
                         intree.__getattr__('DChild'+str(i)+'_PZ')))
  
-  array_hpt_px =  intree.__getattr__('hpt_'+varname+'_px')
-  array_hpt_py =  intree.__getattr__('hpt_'+varname+'_py')
-  array_hpt_pz =  intree.__getattr__('hpt_'+varname+'_pz')
-
-  array_vdchi2_px =  intree.__getattr__('vdchi2_'+varname+'_px')
-  array_vdchi2_py =  intree.__getattr__('vdchi2_'+varname+'_py')
-  array_vdchi2_pz =  intree.__getattr__('vdchi2_'+varname+'_pz')
-
-  array_hpt_fsx =  intree.__getattr__('hpt_'+varname+'_FSX')
-  array_hpt_fsy =  intree.__getattr__('hpt_'+varname+'_FSY')
-  array_hpt_fsz =  intree.__getattr__('hpt_'+varname+'_FSZ')
-
-  array_vdchi2_fsx =  intree.__getattr__('vdchi2_'+varname+'_FSX')
-  array_vdchi2_fsy =  intree.__getattr__('vdchi2_'+varname+'_FSY')
-  array_vdchi2_fsz =  intree.__getattr__('vdchi2_'+varname+'_FSZ')
-
   D_FS = []
-  D_FS.append(TVector3(intree.D_FSX,intree.D_FSY,intree.D_FSZ))
+  D_FS.append(TVector3(intree.D_VX,intree.D_VY,intree.D_VZ))
   for i in range(1,ndchildren+1) :
     D_FS.append(TVector3(intree.__getattr__('DChild'+str(i)+'_FSX'),
                         intree.__getattr__('DChild'+str(i)+'_FSY'),
@@ -174,34 +159,34 @@ for entry in range(0,numentries_intree) :
 
   D_EV = TVector3(intree.D_VX,intree.D_VY,intree.D_VZ)
 
-  for track in range(0,array_hpt_px.__len__() ) :
-    arraysforttype[0][0] = 1
-    arraysforouttree[0][0] = 1
-    track_P = TVector3(array_hpt_px[track],array_hpt_py[track],array_hpt_pz[track])
-    puttrackinouttree(track_P,D_P,ndchildren)
+  for itype, prefix in enumerate(('hpt', 'vdchi2')) :
+    array_px =  intree.__getattr__(prefix + '_' +varname + '_px')
+    array_py =  intree.__getattr__(prefix + '_' +varname + '_py')
+    array_pz =  intree.__getattr__(prefix + '_' +varname + '_pz')
 
-    track_FS = TVector3(array_hpt_px[track],array_hpt_py[track],array_hpt_pz[track])
-    puttrackdocainouttree(track_P, track_FS, D_P, D_FS, ndchildren)
-
-    puttrackptratioinouttree(track_P, D_P, ndchildren)
-
-    puttrackddistinouttree(track_P, track_FS, D_EV)
-
-    outtree.Fill()
-
-  for track in range(0,array_vdchi2_px.__len__() ) :
-    arraysforttype[0][0] = 2
-    arraysforouttree[0][0] = 1
-    track_P = TVector3(array_vdchi2_px[track],array_vdchi2_py[track],array_vdchi2_pz[track])
-    puttrackinouttree(track_P,D_P,ndchildren)
-
-    arraysforouttree_doca[0][0] = 1
-    track_P = TVector3(array_vdchi2_px[track],array_vdchi2_py[track],array_vdchi2_pz[track])
-    puttrackdocainouttree(track_P, track_FS, D_P, D_FS, ndchildren)
-
-    puttrackddistinouttree(track_P, track_FS, D_EV)
-
-    outtree.Fill()
+    array_fsx =  intree.__getattr__(prefix + '_' + varname + '_FSX')
+    array_fsy =  intree.__getattr__(prefix + '_' + varname + '_FSY')
+    array_fsz =  intree.__getattr__(prefix + '_' + varname + '_FSZ')
+    
+    for track in range(0,array_px.__len__() ) :
+      #print entry, prefix, track
+      arraysforttype[0][0] = itype+1
+      arraysforouttree[0][0] = 1 
+      track_P = TVector3(array_px[track],
+                         array_py[track],
+                         array_pz[track])
+      puttrackinouttree(track_P,D_P,ndchildren)
+      
+      track_FS = TVector3(array_fsx[track],
+                          array_fsy[track],
+                          array_fsz[track])
+      puttrackdocainouttree(track_P, track_FS, D_P, D_FS, ndchildren)
+      
+      puttrackptratioinouttree(track_P, D_P, ndchildren)
+      
+      puttrackddistinouttree(track_P, track_FS, D_EV)
+      
+      outtree.Fill()
 
 
 outfile.Write()
